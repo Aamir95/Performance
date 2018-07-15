@@ -1,4 +1,4 @@
-nclude <core.p4>
+#include <core.p4>
 #include <sume_switch.p4>
 
 typedef bit<48> EthAddr_t;
@@ -61,7 +61,7 @@ parser TopParser(packet_in b,
         }
 }
 
-l TopPipe(inout Parsed_packet p,
+control TopPipe(inout Parsed_packet p,
         inout user_metadata_t user_metadata,
         inout digest_data_t digest_data,
         inout sume_metadata_t sume_metadata) {
@@ -101,4 +101,18 @@ l TopPipe(inout Parsed_packet p,
                 }
         }
 }
+@Xlinx_MaxPacketRegion(16384)
+control TopDeparser(packet_out b,
+                    in Parsed_packet p,
+                    in user_metadata_t user_metadata,
+                    inout digest_data_t digest_data,
+                    inout sume_metadata_t sume_metadata) {
+    apply {
+        b.emit(p.ethernet);
+        b.emit(p.Perf);
+    }
+}
+
+// Instantiate the switch
+SimpleSumeSwitch(TopParser(), TopPipe(), TopDeparser()) main;
 
