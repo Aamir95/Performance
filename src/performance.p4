@@ -61,3 +61,44 @@ parser TopParser(packet_in b,
         }
 }
 
+l TopPipe(inout Parsed_packet p,
+        inout user_metadata_t user_metadata,
+        inout digest_data_t digest_data,
+        inout sume_metadata_t sume_metadata) {
+
+        action send_to_cpu(digCode_t code) {
+                sume_metadata.dst_port = CPU_PORT;
+                digest_data.digest_code = code;
+                digest_data.src_port = sume_metadata.src_port;
+         }
+
+        action set_dst_port(port_t port) {
+                sume_metadata.dst_port = port;
+        }
+
+        table mac_to_port {
+                key = {
+                p.ethernet.srcAddr : exact;
+                }
+                actions = {
+                set_dst_port;
+                NoAction;
+                }
+                size = 64;
+                default_action = NoAction;
+    }
+        apply{
+
+                if (p.Perf.isValid()){
+                        if (sume_metadata.src_port == CPU_PORT){
+                                start_timestamp(1, p.Perf.tss);
+                                mac_to_port.apply();
+                        }
+                        else {
+                                end_timestamp(1,p.Perf.tse);
+                                send_to_cpu(DIG_LOCAL_IP);
+                        }
+                }
+        }
+}
+
